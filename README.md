@@ -11,3 +11,5 @@ meant to be used with a window manager's keyboard shortcuts, eg.
   - ctrl-alt-f -> popup-appmenu firefox
   - ...
 
+Screenshot: https://raw.githubusercontent.com/taradiddles/qubes-os/master/popup-appmenu.screenshot.jpg
+
