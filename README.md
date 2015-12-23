@@ -1,4 +1,4 @@
-qubes-os
+Qubes OS stuff
 ==========
 
 popup-appmenu
