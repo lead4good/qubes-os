@@ -24,6 +24,7 @@ DISPVM_FIREFOX_ICON="/usr/share/icons/hicolor/24x24/devices/dispvm-red.png"
 DISPVM_FIREFOX_APP="/usr/share/qubes-appmenus/qubes-dispvm-firefox.desktop"
 
 MENU_HEIGHT=250
+MENU_TIMEOUT=5
 
 # --------------------------------------------
 
@@ -35,7 +36,7 @@ if [ -z "$TYPE" ]; then
 	exit 1
 fi
 
-MSG="zenity --height=$MENU_HEIGHT --list --imagelist --text="$TYPE" --hide-header --column=\"\" --column=\"\""
+MSG="zenity --timeout $MENU_TIMEOUT --height=$MENU_HEIGHT --list --imagelist --text="$TYPE" --hide-header --column=\"\" --column=\"\""
 
 if [ "$TYPE" = "firefox" ]; then
 	MSG="$MSG $DISPVM_FIREFOX_ICON dispvm"
