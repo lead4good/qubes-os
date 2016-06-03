@@ -2,20 +2,23 @@
 
 XEN_VCPU_MIG_DELAY=1000
 
+# optional tlp functions, for better BAT/AC detection
+TLPLIB="/usr/local/share/tlp-pm/tlp-functions"
+
 # only display commands, don't run them
 DEBUG=1
 
-# source TLP functions
-TLPLIB="/usr/local/share/tlp-pm/tlp-functions"
-if [ ! -f "$TLPLIB" ]; then
-	echo "Error: missing function library '$TLPLIB'" >&2
-	exit 1
+# -------------------
+
+pwrmode=0	# default to AC
+if [ -f "$TLPLIB" ]; then
+	. "$TLPLIB"
+	get_power_state
+	pwrmode=$?
+else
+	[ "$(cat /sys/class/power_supply/AC/online)" = 0 ] && pwrmode=1
 fi
-. "$TLPLIB"
-
-
-# -------------
-
+	
 min_freq=
 max_freq=
 min_max_freq=$(sudo xenpm get-cpufreq-para 0 | sed -ne 's/^cpuinfo frequency.*max \[\([0-9]\+\)\].*min \[\([0-9]\+\)\].*/\1|\2/p')
@@ -33,8 +36,6 @@ fi
 
 running_vms=$(/usr/local/bin/qvm-list-running)
 
-get_power_state
-pwrmode=$?
 
 
 if [ $pwrmode -eq 1 ]; then
