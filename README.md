@@ -33,7 +33,8 @@ Note: the script doesn't run TLP in dom0, that's the role of TLP's scripts if in
 
 ## TLP in dom0
 
-Installing tlp in dom0 pulls too many dependencies. -> review and install only specific scripts:
+Installing tlp in dom0 pulls too many dependencies. -> review and install only specific scripts (download from https://github.com/linrunner/TLP)
+
 
 ```
 /usr/local/bin/bluetooth
