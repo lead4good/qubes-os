@@ -29,7 +29,10 @@ udevadm control --reload
 systemctl daemon-reload
 ```
 
-Note: the script doesn't run TLP in dom0, that's the role of TLP's scripts if installed in dom0.
+Note:
+* the script doesn't run TLP in dom0, that's the role of TLP's scripts if installed in dom0.
+* debug is enabled by default (DEBUG=1), so the commands will only be echoed without being run. Disable it once you're confident the script doesn't break your setup.
+
 
 ## TLP in dom0
 
