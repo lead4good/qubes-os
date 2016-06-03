@@ -33,26 +33,28 @@ Note: the script doesn't run TLP in dom0, that's the role of TLP's scripts if in
 
 ## TLP in dom0
 
-Installing tlp in dom0 pulls too many dependencies. -> review and install only specific scripts.
-
-files:
+Installing tlp in dom0 pulls too many dependencies. -> review and install only specific scripts:
 
 ```
-/etc/default/tlp
-/etc/systemd/system/multi-user.target.wants/tlp.service
-/etc/systemd/system/sleep.target.wants/tlp-sleep.service
-/etc/systemd/system/tlp.service
-/etc/systemd/system/tlp-sleep.service
-/etc/udev/rules.d/85-tlp.rules
-/usr/local/bin/tlp-pcilist
+/usr/local/bin/bluetooth
+/usr/local/bin/run-on-ac
+/usr/local/bin/run-on-bat
 /usr/local/bin/tlp-stat
 /usr/local/bin/tlp-usblist
-/usr/local/lib/pm-utils/sleep.d/49tlp
+/usr/local/bin/tlp-pcilist
+/usr/local/bin/wifi
+/usr/local/bin/wwan
 /usr/local/sbin/tlp
+/usr/local/lib/pm-utils/sleep.d/49tlp
 /usr/local/share/tlp-pm
+/usr/local/share/tlp-pm/tlp-rf-func
 /usr/local/share/tlp-pm/tlp-functions
 /usr/local/share/tlp-pm/tlp-nop
-/usr/local/share/tlp-pm/tlp-rf-func
+/etc/systemd/system/tlp-sleep.service
+/etc/systemd/system/tlp.service
+/etc/udev/rules.d/85-tlp.rules
+/etc/default/tlp 
 ```
 
-Note: we could probabvly weed out some of those scripts.
+Note: some of the scripts are probably never called (eg. wifi, wwan, ...) since there's no network adapter in dom0, and they wouldn't work anyway since some packages/functionality are missing (eg. rfkill). 
+ 
