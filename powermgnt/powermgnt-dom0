@@ -1,0 +1,64 @@
+#!/bin/sh
+
+XEN_VCPU_MIG_DELAY=1000
+
+# only display commands, don't run them
+DEBUG=1
+
+# source TLP functions
+TLPLIB="/usr/local/share/tlp-pm/tlp-functions"
+if [ ! -f "$TLPLIB" ]; then
+	echo "Error: missing function library '$TLPLIB'" >&2
+	exit 1
+fi
+. "$TLPLIB"
+
+
+# -------------
+
+min_freq=
+max_freq=
+min_max_freq=$(sudo xenpm get-cpufreq-para 0 | sed -ne 's/^cpuinfo frequency.*max \[\([0-9]\+\)\].*min \[\([0-9]\+\)\].*/\1|\2/p')
+if [ $? -eq 0 ]; then
+	min_freq=${min_max_freq%|*}
+	max_freq=${min_max_freq#*|}
+else
+	echo "Couldn't get min/max cpu freq; won't set frequency thresholds" >&2
+fi
+
+D=
+if [ "$DEBUG" = 1 ]; then
+	D=echo 
+fi
+
+running_vms=$(/usr/local/bin/qvm-list-running)
+
+get_power_state
+pwrmode=$?
+
+
+if [ $pwrmode -eq 1 ]; then
+	for i in $running_vms; do
+		$D qvm-run $i "sudo tlp bat"
+	done
+	# $D xenpm set-scaling-governor powersave
+	$D xenpm set-scaling-governor ondemand
+	$D xenpm set-sched-smt enable
+	$D xenpm set-vcpu-migration-delay $XEN_VCPU_MIG_DELAY
+	$D xenpm disable-turbo-mode
+	[ -n "$min_freq" ] && $D xenpm set-scaling-maxfreq $min_freq
+
+else
+	for i in $running_vms; do
+		$D qvm-run $i "sudo tlp ac"
+	done
+	$D xenpm set-scaling-governor ondemand
+	$D xenpm set-sched-smt enable
+	$D xenpm set-vcpu-migration-delay 0
+	$D xenpm enable-turbo-mode
+	[ -n "$max_freq" ] && $D xenpm set-scaling-maxfreq $max_freq
+
+fi
+
+exit 0
+

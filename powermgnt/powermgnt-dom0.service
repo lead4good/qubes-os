@@ -1,0 +1,11 @@
+[Unit]
+Description=Dom0 power management system startup
+After=multi-user.target 
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/bin/powermgnt-dom0
+
+[Install]
+WantedBy=multi-user.target
