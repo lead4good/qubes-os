@@ -1,0 +1,88 @@
+#!/bin/sh
+
+# ivan mitev - jan 2018
+# GPL
+
+# show a popup menu (zenity list) with app vms for a given app.
+# 
+# meant to be used with a window manager's keyboard shortcuts, eg.
+# ctrl-alt-x -> popup-appmenu org.gnome.Terminal
+# ctrl-alt-f -> popup-appmenu firefox
+# ...
+
+# logic:
+# - app vm names are found from var/lib/qubes/appvms
+# - add a list entry for that app vm if a corresponding icon for the app
+#   is found in ~/.local/share/applications
+
+
+# --------------------------------------------
+
+DISPVM_ICON="/usr/share/icons/hicolor/24x24/devices/dispvm-red.png"
+
+MENU_HEIGHT=320
+MENU_TIMEOUT=5
+
+# --------------------------------------------
+
+TYPE=$1
+
+if [ -z "$TYPE" ]; then
+	echo "Usage: $(basename "$0") name" >&2
+	echo "  eg. $(basename "$0") org.gnome.Nautilus" >&2
+	exit 1
+fi
+
+MSG="zenity --timeout $MENU_TIMEOUT --height=$MENU_HEIGHT --list --imagelist --text="$TYPE" --hide-header --column=\"\" --column=\"\""
+
+IFS="
+"
+
+for appvm in $(ls /var/lib/qubes/appvms) ; do
+
+	[ -z "${appvm##sys-*}" ] && continue
+
+	app="$HOME/.local/share/applications/$appvm-${TYPE}.desktop"
+	[ ! -f "$app" ] && echo "no $app for app vm $appvm" && continue
+
+	if [ -z "${appvm%%*-dvm}" ]; then
+		icon=$DISPVM_ICON
+	else
+
+		qubesicon=$(sed -ne 's/Icon=\(.*\)/\1/p' "$app")
+		[ -z "$qubesicon" ] && echo "couldn't find icon in $app" && continue
+
+		qubesicon_bn=$(basename "$qubesicon")
+		icon="$HOME/icons/$appvm/${qubesicon_bn}"
+	fi
+
+	needconvert=
+	[ -f "$icon" ] && [ "$icon" -ot "$qubesicon" ] && needconvert=1
+	[ ! -f "$icon" ] && needconvert=1
+
+	if [ -n "$needconvert" ]; then
+		echo 1 >> /tmp/dsa
+		mkdir -p "$HOME/icons/$appvm"
+		convert -resize 24x24 "$qubesicon" "$icon"
+	fi
+
+	MSG="$MSG $icon $appvm"
+done
+
+ANS=$(eval $MSG)
+RETVAL=$?
+[ $RETVAL -ne 0 ] && exit $RETVAL
+
+# bug ? zenity outputs imagename|imagename instead of (expected) imagename|appvm
+#  eg. $HOME/icons/banking/firefox.png|$HOME/icons/banking/firefox.png
+ANS="${ANS%|*}"		# pick first field - $HOME/icons/banking/firefox.png
+
+ANS=${ANS%.*}		# remove extension - $HOME/icons/banking/firefox
+
+ANS_TYPE=$(basename "$ANS")			# firefox
+ANS_APPVM=$(basename "$(dirname "$ANS")")	# banking
+ANS_APP="$HOME/.local/share/applications/${ANS_APPVM}-${ANS_TYPE}.desktop"
+
+[ ! -f "$ANS_APP" ] && echo "no such file: $ANS_APP" && exit 1
+
+xdg-open $ANS_APP
