@@ -1,3 +1,6 @@
+**work in progress !**
+
+
 # powermgnt
 
 Set a few xenpm parameters and run TLP in running VMs.
