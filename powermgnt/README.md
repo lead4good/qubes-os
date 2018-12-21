@@ -1,4 +1,33 @@
-**work in progress !**
+Power management in Qubes OS
+============================
+
+**! work in progress !**
+
+With between a few to a lot of VMs running simultanously Qubes OS will never be as power/battery friendly as a "stock" Linux distribution. This document tries to describe a few power management customizations and tweaks that should improve battery life.
+
+Virtualization means that we'll have to tweak power management (PM) at different levels:
+
+- Xen
+- dom0
+- in VMs with attached devices
+
+Xen PM
+======
+
+Resources:
+- https://wiki.xenproject.org/wiki/Xen_power_management
+- http://confluence.wartungsfenster.de/display/Adminspace/Xen+Power+management#XenPowermanagement-2.dom0OS
+
+We'll use method A (hypervisor based cpufreq implementation). Eg.:
+
+~~~
+xenpm set-scaling-governor powersave
+xenpm set-sched-smt enable
+xenpm set-vcpu-migration-delay 1000
+xenpm enable-turbo-mode
+~~~
+
+
 
 
 # powermgnt
@@ -9,7 +38,7 @@ Prerequisites
 * 90-powermgnt-dom0.rules -> /etc/udev/rules.d
 * powermgnt-dom0.service -> /etc/systemd/system
 * powermgnt-dom0 -> /usr/local/bin
-* TLP installed in VMs (for fedora: rpm 'tlp')
+* TLP installed in VMs with physical devices attached (for fedora: rpm 'tlp')
 
 After copying files in dom0:
 
@@ -18,9 +47,7 @@ udevadm control --reload
 systemctl daemon-reload
 ```
 
-Note:
-* the script doesn't run TLP in dom0, that's the role of TLP's scripts if installed in dom0.
-* debug is enabled by default (DEBUG=1), so the commands will only be echoed without being run. Disable it once you're confident the script doesn't break your setup.
+Note: debug is enabled by default (DEBUG=1), so the commands will only be echoed without being run. Disable it once you're confident the script doesn't break your setup.
 
 
 # TLP in dom0
