@@ -9,7 +9,6 @@ Prerequisites
 * 90-powermgnt-dom0.rules -> /etc/udev/rules.d
 * powermgnt-dom0.service -> /etc/systemd/system
 * powermgnt-dom0 -> /usr/local/bin
-* qvm-list-running -> /usr/local/bin
 * TLP installed in VMs (for fedora: rpm 'tlp')
 
 After copying files in dom0:
