@@ -34,7 +34,7 @@ if [ "$DEBUG" = 1 ]; then
 	D=echo 
 fi
 
-running_vms=$(qvm-ls --running -q -O name --raw-list)
+running_vms=$(qvm-ls --running -q -O name --raw-list | grep -v dom0)
 
 
 
