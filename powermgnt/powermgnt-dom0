@@ -40,7 +40,7 @@ running_vms=$(qvm-ls --running -q -O name --raw-list | grep -v dom0)
 
 if [ $pwrmode -eq 1 ]; then
 	for i in $running_vms; do
-		$D qvm-run $i "sudo tlp bat"
+		$D qvm-run -u root $i "tlp bat"
 	done
 	# $D xenpm set-scaling-governor powersave
 	$D xenpm set-scaling-governor ondemand
@@ -51,7 +51,7 @@ if [ $pwrmode -eq 1 ]; then
 
 else
 	for i in $running_vms; do
-		$D qvm-run $i "sudo tlp ac"
+		$D qvm-run -u root $i "tlp ac"
 	done
 	$D xenpm set-scaling-governor ondemand
 	$D xenpm set-sched-smt enable
