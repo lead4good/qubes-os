@@ -15,3 +15,6 @@ Screenshot: https://raw.githubusercontent.com/taradiddles/qubes-os/master/popup-
 
 see README.md in powermgnt/
 
+## setup notes
+
+notes on productivity tweaks, templates creation, etc. ; see README.md in setup-notes/
