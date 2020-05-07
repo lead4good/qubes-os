@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# ivan mitev - dec 2015
+# ivan mitev - may 2020
 # GPL
 
 # show a popup menu (zenity list) with app vms for a given app.
@@ -10,75 +10,108 @@
 # ctrl-alt-f -> popup-appmenu firefox
 # ...
 
-# logic:
-# - app vm names are found from var/lib/qubes/appvms
-# - add a list entry for that app vm if a corresponding icon for the app
-#   is found in ~/.local/share/applications
-# - exception: firefox for dispvm is added statically
-
-
 # --------------------------------------------
 
-# static stuff | firefox in dispVM
-DISPVM_FIREFOX_ICON="/usr/share/icons/hicolor/24x24/devices/dispvm-red.png"
-DISPVM_FIREFOX_APP="/usr/share/qubes-appmenus/qubes-dispvm-firefox.desktop"
+DISPVM_ICON="/usr/share/icons/hicolor/24x24/devices/dispvm-red.png"
 
-MENU_HEIGHT=250
+MENU_HEIGHT=500
+MENU_WIDTH=400
 MENU_TIMEOUT=5
 
+DEBUG=
+
+ADD_VM=
+ADD_VM="$ADD_VM dispBrowser|$DISPVM_ICON"
+
 # --------------------------------------------
 
-TYPE=$1
+print_d() {
+	[ -t 1 -o -n "$DEBUG" ] && echo "$*"
+	return 0
+}
 
-if [ -z "$TYPE" ]; then
+PROGRAM="$1"
+
+if [ -z "$PROGRAM" ]; then
 	echo "Usage: $(basename "$0") name" >&2
-	echo "  eg. $(basename "$0") org.gnome.Nautilus" >&2
+	echo "  eg. $(basename "$0") firefox" >&2
 	exit 1
 fi
 
-MSG="zenity --timeout $MENU_TIMEOUT --height=$MENU_HEIGHT --list --imagelist --text="$TYPE" --hide-header --column=\"\" --column=\"\""
+# --------------------------------------------
+# build a list of VM|icon_file entries
 
-if [ "$TYPE" = "firefox" ]; then
-	MSG="$MSG $DISPVM_FIREFOX_ICON dispvm"
-fi
+VM_TUPLES=
+for vm in $(ls /var/lib/qubes/appvms) ; do
 
-IFS="
-"
+	# don't show apps for sys-* VMs
+	[ -z "${vm##sys-*}" ] && continue
 
-for appvm in $(ls /var/lib/qubes/appvms) ; do
+	# don't show VMs that don't have $PROGRAM in the vm's shortcuts
+	xdg_file="$HOME/.local/share/applications/$vm-${PROGRAM}.desktop"
+	[ ! -f "$xdg_file" ] && print_d "no $xdg_file for vm $vm" && continue
 
-	app="$HOME/.local/share/applications/$appvm-${TYPE}.desktop"
-	[ ! -f "$app" ] && echo "no $app for app vm $appvm" && continue
+	if [ -z "${vm%%*-dvm}" ]; then
+		# use a dispVM icon for disp VMs
+		qubes_icon=$DISPVM_ICON
+	else
+		qubes_icon=$(sed -ne 's/^Icon=\(.*\)/\1/p' "$xdg_file")
+		[ -z "$qubes_icon" ] && print_d "couldn't find icon in $xdg_file" && continue
+	fi
 
-	qubesicon=$(sed -ne 's/Icon=\(.*\)/\1/p' "$app")
-	[ -z "$qubesicon" ] && echo "couldn't find icon in $app" && continue
-
-	qubesicon_bn=$(basename "$qubesicon")
-	icon="$HOME/icons/$appvm/${qubesicon_bn}"
-	mkdir -p "$HOME/icons/$appvm"
-	[ ! -f "$icon" ] && convert -resize 24x24 "$qubesicon" "$icon"
-
-	MSG="$MSG $icon $appvm"
+	VM_TUPLES="$VM_TUPLES $vm|$qubes_icon"
 done
 
-ANS=$(eval $MSG)
+# Additional VMs
+for vm in $ADD_VM; do
+	VM_TUPLES="$VM_TUPLES ${vm%|*}|${vm#*|}"
+done
+
+# dom0 / xterm
+if [ "$PROGRAM" = "xterm" ]; then
+	VM_TUPLES="$VM_TUPLES dom0|/usr/share/icons/hicolor/48x48/apps/xterm-color.png"
+fi
+
+# --------------------------------------------
+# build zenity menu command
+
+MSG="zenity --timeout $MENU_TIMEOUT --height=$MENU_HEIGHT --width=$MENU_WIDTH --list --imagelist"
+MSG="$MSG --text="cmd:$PROGRAM" --hide-header --column=\"\" --column=\"\" --print-column 2"
+
+# sort and add entries
+for vm_tuple in $(echo $VM_TUPLES | tr ' ' '\n' | sort); do
+	vm="${vm_tuple%|*}"
+	icon="${vm_tuple#*|}"
+	conv_icon="$HOME/icons/$vm/$(basename "$icon")"
+	print_d "vm:$vm icon:$icon conv_icon:$conv_icon"
+
+	needconvert=
+	[ -f "$conv_icon" ] && [ "$conv_icon" -ot "$qubes_icon" ] && needconvert=1
+	[ ! -f "$conv_icon" ] && needconvert=1
+	if [ -n "$needconvert" ]; then
+		mkdir -p "$(dirname "$conv_icon")"
+		convert -resize 24x24 "$icon" "$conv_icon"
+	fi
+
+	MSG="$MSG \"$conv_icon\" \"$vm\""
+done
+
+print_d "MSG is $MSG"
+
+
+# --------------------------------------------
+# run 
+
+ANS_VM=$(eval $MSG)
 RETVAL=$?
 [ $RETVAL -ne 0 ] && exit $RETVAL
 
-# bug ? zenity outputs imagename|imagename instead of (expected) imagename|appvm
-#  eg. $HOME/icons/banking/firefox.png|$HOME/icons/banking/firefox.png
-ANS="${ANS%|*}"		# pick first field - $HOME/icons/banking/firefox.png
+print_d "ANS_VM:$ANS_VM ANS_PROGRAM:$ANS_PROGRAM"
 
-if [ "$TYPE" = "firefox" -a "$ANS" = "$DISPVM_FIREFOX_ICON" ]; then
-	ANS_APP="$DISPVM_FIREFOX_APP"
+if [ "$ANS_VM" = "dom0" -a "$PROGRAM" = "xterm" ]; then
+	xterm &
 else
-
-	ANS=${ANS%.*}		# remove extension - $HOME/icons/banking/firefox
-	ANS_TYPE=$(basename "$ANS")			# firefox
-	ANS_APPVM=$(basename "$(dirname "$ANS")")	# banking
-	ANS_APP="$HOME/.local/share/applications/${ANS_APPVM}-${ANS_TYPE}.desktop"
+	qvm-run -q -a --service -- "$ANS_VM" "qubes.StartApp+$PROGRAM"
 fi
 
-[ ! -f "$ANS_APP" ] && echo "no such file: $ANS_APP" && exit 1
-
-xdg-open $ANS_APP
+exit 0
