@@ -1,8 +1,5 @@
 #!/bin/sh
 
-# ivan mitev - may 2020
-# GPL
-
 # show a popup menu (zenity list) with app vms for a given app.
 # 
 # meant to be used with a window manager's keyboard shortcuts, eg.
@@ -111,7 +108,11 @@ print_d "ANS_VM:$ANS_VM ANS_PROGRAM:$ANS_PROGRAM"
 if [ "$ANS_VM" = "dom0" -a "$PROGRAM" = "xterm" ]; then
 	xterm &
 else
-	qvm-run -q -a --service -- "$ANS_VM" "qubes.StartApp+$PROGRAM"
+	if [ -e "$HOME/.local/share/applications/$ANS_VM-${PROGRAM}.desktop" ]; then
+		xdg-open "$HOME/.local/share/applications/$ANS_VM-${PROGRAM}.desktop"
+	else
+		qvm-run -q -a --service -- "$ANS_VM" "qubes.StartApp+$PROGRAM"
+	fi
 fi
 
 exit 0
